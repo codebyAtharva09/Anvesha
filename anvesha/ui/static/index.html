@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ANVESHA · Coarse PAT Console</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="mark">◎</span><div><b>ANVESHA</b><small>Belief-driven coarse PAT · SIH26169</small></div></div>
+  <nav class="tabs">
+    <button data-tab="live" class="on">LIVE</button>
+    <button data-tab="bench">BENCHMARK</button>
+    <button data-tab="video">VIDEO (B-2)</button>
+    <button data-tab="about">ABOUT</button>
+  </nav>
+  <div class="status">
+    <span class="kv"><i>RUN</i><b id="runId">—</b></span>
+    <span class="kv"><i>T+</i><b id="simT">0.00</b>s</span>
+    <span class="kv" title="frames delivered to this display per second (sim is paced to real time)"><i>VIEW FPS</i><b id="fps">—</b></span>
+    <span id="modeChip" class="chip">IDLE</span>
+    <span id="conn" class="dot" title="server link"></span>
+  </div>
+</header>
+
+<main id="tab-live" class="tab on">
+  <section class="grid">
+    <div class="panel cam">
+      <div class="ph"><span>VIRTUAL CAMERA · FPA 640×480 · <b id="fovLbl">4.0°×3.0°</b></span><span class="muted" id="camNote">boresight ✚ · gate ◯ · meas □ · pred ◇</span></div>
+      <div class="canvasWrap"><canvas id="cam" width="640" height="480"></canvas></div>
+    </div>
+    <div class="panel world">
+      <div class="ph"><span>VIRTUAL SCREEN 2000×2000 · <b id="searchLbl">belief</b></span>
+        <span class="seg"><button id="v2d" class="on">2D</button><button id="v3d">3D</button></span></div>
+      <div class="canvasWrap sq"><canvas id="world" width="520" height="520"></canvas><div id="three" class="hidden"></div></div>
+      <div class="legend"><i class="lg tgt"></i>beacon (truth, display only) <i class="lg fov"></i>camera FOV <i class="lg plan"></i>next look <i class="lg bel"></i>belief P(x)</div>
+    </div>
+    <div class="panel tele">
+      <div class="ph"><span>TRACKING TELEMETRY</span></div>
+      <table class="tt">
+        <tr><td>Mode</td><td id="tMode">—</td><td>Confidence</td><td id="tConf">—</td></tr>
+        <tr><td>Centroid u,v</td><td id="tMeas">—</td><td>SNR (MF)</td><td id="tSnr">—</td></tr>
+        <tr><td>Err image</td><td id="tErrI">—</td><td>Err LOS</td><td id="tErrL">—</td></tr>
+        <tr><td>Centroid err</td><td id="tCe">—</td><td>Candidates</td><td id="tNd">—</td></tr>
+        <tr><td>Noise σ̂</td><td id="tSig">—</td><td>Impulse frac</td><td id="tSp">—</td></tr>
+        <tr><td>Jitter σ̂</td><td id="tJit">—</td><td>NIS</td><td id="tNis">—</td></tr>
+        <tr><td>Pd(zoom)</td><td id="tPd">—</td><td>Proc</td><td id="tProc">—</td></tr>
+      </table>
+      <div class="ph sub"><span>IMM MODEL PROBABILITIES</span></div>
+      <div id="imm" class="imm"></div>
+    </div>
+    <div class="panel ctrl">
+      <div class="ph"><span>PAN / TILT · CONTROL</span></div>
+      <div class="gimbal">
+        <canvas id="gimbal" width="200" height="140"></canvas>
+        <table class="tt small">
+          <tr><td>Pan</td><td id="gPan">—</td></tr>
+          <tr><td>Tilt</td><td id="gTilt">—</td></tr>
+          <tr><td>Pan rate</td><td id="gPr">—</td></tr>
+          <tr><td>Tilt rate</td><td id="gTr">—</td></tr>
+          <tr><td>Zoom</td><td id="gZoom">—</td></tr>
+          <tr><td>Rate limit</td><td id="gLim">—</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="panel charts">
+      <div class="ph"><span>PERFORMANCE · rolling 20 s</span><span class="muted">dashed = PS limit</span></div>
+      <div class="chartRow">
+        <div><small>Pointing error (px) — LOS / image</small><canvas id="chErr" width="420" height="120"></canvas></div>
+        <div><small>Pan/tilt rate (°/s)</small><canvas id="chRate" width="420" height="120"></canvas></div>
+        <div><small>Tracking pipeline time (ms/frame) — 50 ms = 20 FPS budget</small><canvas id="chProc" width="420" height="120"></canvas></div>
+      </div>
+      <div class="kpis" id="kpis"></div>
+    </div>
+    <div class="panel log">
+      <div class="ph"><span>EVENT LOG</span><button id="clearLog" class="mini">clear</button></div>
+      <pre id="events"></pre>
+    </div>
+  </section>
+
+  <section class="deck">
+    <div class="grp">
+      <label>Scenario<select id="scenario"></select></label>
+      <label>Pipeline<select id="pipeline">
+        <option value="anvesha">ANVESHA (belief · IMM · predictive)</option>
+        <option value="baseline_a">Baseline A · threshold + PID</option>
+        <option value="baseline_b">Baseline B · blob + KF + PID</option>
+        <option value="baseline_c">Baseline C · CNN + KF + PID</option>
+      </select></label>
+      <label>Seed<input id="seed" type="number" value="1" min="0" style="width:64px"></label>
+      <button id="btnStart" class="primary">▶ START</button>
+      <button id="btnPause">❚❚</button>
+      <label>Speed<select id="speed"><option>0.5</option><option selected>1</option><option>2</option><option>4</option></select></label>
+      <button id="btnReport">⎙ REPORT</button>
+    </div>
+    <div class="grp">
+      <span class="gh">NOISE</span>
+      <label>Gauss σ <input type="range" min="0" max="20" value="2" data-key="noise.gaussian_sigma"><output>2</output></label>
+      <label><input type="checkbox" data-key="noise.poisson"> Poisson</label>
+      <label>S&amp;P % <input type="range" min="0" max="15" value="0" data-key="noise.salt_pepper_frac" data-scale="0.01"><output>0</output></label>
+      <label>Jitter ± <input type="range" min="0" max="20" value="0" data-key="noise.jitter_px"><output>0</output></label>
+    </div>
+    <div class="grp">
+      <span class="gh">ATMOSPHERE</span>
+      <label><select data-key="atmosphere.condition"><option>clear</option><option>haze</option><option>fog</option><option>rain</option><option>low_light</option></select></label>
+      <label>Severity <input type="range" min="0" max="100" value="50" data-key="atmosphere.severity" data-scale="0.01"><output>50</output></label>
+      <label>Turbulence <input type="range" min="0" max="100" value="0" data-key="atmosphere.turbulence" data-scale="0.01"><output>0</output></label>
+    </div>
+    <div class="grp">
+      <span class="gh">PLATFORM</span>
+      <label><select data-key="platform.motion"><option>none</option><option>linear</option><option>circular</option><option>random</option><option>spiral</option><option>figure8</option><option>vibration</option></select></label>
+      <label>px/frame <input type="range" min="0" max="20" value="0" data-key="platform.amplitude_px_per_frame"><output>0</output></label>
+    </div>
+    <div class="grp">
+      <span class="gh">TARGET</span>
+      <label><select data-key="target.trajectory"><option>circular</option><option>straight</option><option>figure8</option><option>random</option><option>spiral</option><option>sinusoidal</option><option>user</option></select></label>
+      <label>Speed <input type="range" min="0" max="400" value="120" data-key="target.speed_px_s"><output>120</output></label>
+      <button id="btnOcc" class="warn">HOLD: OCCLUDE</button>
+      <button id="btnKick">LOS SHOCK</button>
+      <label><input type="checkbox" data-key="search.allow_zoom" checked> adaptive FOV</label>
+    </div>
+  </section>
+</main>
+
+<main id="tab-bench" class="tab">
+  <section class="panel wide">
+    <div class="ph"><span>BENCHMARK RESULTS · measured in simulation (same seeds for every pipeline)</span><a class="mini" href="/results/bench/benchmark_report.html" target="_blank">open full report ↗</a></div>
+    <p class="muted">Run <code>python -m anvesha bench</code> or <code>run_benchmark.bat</code> to regenerate. Values below are read from <code>results/bench/summary.json</code>.</p>
+    <div id="benchTable"></div>
+    <div class="ph"><span>ABLATION · contribution of each ANVESHA component</span><a class="mini" href="/results/ablation/benchmark_report.html" target="_blank">open ↗</a></div>
+    <div id="ablTable"></div>
+  </section>
+</main>
+
+<main id="tab-video" class="tab">
+  <section class="panel wide">
+    <div class="ph"><span>BENCHMARK-2 · evaluator video input (PTZ camera bypassed)</span></div>
+    <div class="grp">
+      <label>Video path (.mp4) <input id="vPath" size="60" placeholder="C:\path\to\evaluator_video.mp4"></label>
+      <label>Truth CSV (optional) <input id="vTruth" size="40" placeholder="frame,x,y"></label>
+      <label>Beacon px <input id="vSize" type="number" value="10" style="width:60px"></label>
+      <button id="vRun" class="primary">RUN VIDEO</button>
+    </div>
+    <pre id="vOut" class="out">idle</pre>
+  </section>
+</main>
+
+<main id="tab-about" class="tab">
+  <section class="panel wide prose">
+    <h2>What this console is</h2>
+    <p>ANVESHA is a software-in-the-loop coarse Pointing-Acquisition-Tracking (PAT) simulator for mobile FSOC terminals, built for ISRO problem statement SIH26169. Every number and image on the LIVE tab comes from the running engine: the virtual camera image is rendered by the simulator, detection/estimation/control run on that image only, and ground truth is used only to compute the error metrics shown.</p>
+    <h2>Loop</h2>
+    <p>virtual camera → noise-adaptive matched filter + CFAR → CNN verifier → gated association → IMM estimator (gimbal frame, IMU input, jitter-aware noise) → PAT supervisor → belief-driven search / predictive control → rate-limited gimbal → camera.</p>
+    <h2>Honesty notes</h2>
+    <ul><li>This is a simulation prototype, not flight software.</li><li>Image-plane error includes camera jitter, which a coarse gimbal cannot correct; LOS error excludes it. Both are logged.</li><li>The beacon marker on the world view is simulator truth shown for the operator only; it is never used by the tracker.</li></ul>
+  </section>
+</main>
+<script src="/static/vendor/three.min.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

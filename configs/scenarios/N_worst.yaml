@@ -1,0 +1,7 @@
+name: N_worst
+description: Worst-case stress - all PS maxima at once (sigma 20, S&P 10 %, jitter 20, random platform 20 px/frame), fog, strong turbulence, fast random target, distractors, occlusion.
+screen: {n_distractors: 3}
+target: {trajectory: random, speed_px_s: 200, occlusions: [[10.0, 11.0]]}
+noise: {gaussian: true, gaussian_sigma: 20, salt_pepper: true, salt_pepper_frac: 0.10, poisson: true, poisson_scale: 1.0, jitter_px: 20}
+platform: {motion: random, amplitude_px_per_frame: 20}
+atmosphere: {condition: fog, severity: 0.6, turbulence: 1.0}

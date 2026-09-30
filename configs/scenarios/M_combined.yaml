@@ -1,0 +1,6 @@
+name: M_combined
+description: Combined moderate disturbances - Gaussian + S&P + jitter + circular platform motion + haze + turbulence.
+target: {trajectory: figure8, speed_px_s: 120}
+noise: {gaussian: true, gaussian_sigma: 10, salt_pepper: true, salt_pepper_frac: 0.05, jitter_px: 8}
+platform: {motion: circular, amplitude_px_per_frame: 5, period_s: 8}
+atmosphere: {condition: haze, severity: 0.5, turbulence: 0.5}

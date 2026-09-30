@@ -1,0 +1,5 @@
+name: G_fog
+description: Dense fog - 80 % x severity transmission loss, air-light veil, forward-scatter blur.
+target: {trajectory: circular, speed_px_s: 120}
+atmosphere: {condition: fog, severity: 0.75}
+noise: {gaussian: true, gaussian_sigma: 4}

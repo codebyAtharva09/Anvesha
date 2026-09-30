@@ -1,0 +1,4 @@
+name: B_gaussian
+description: Gaussian sensor noise at the PS maximum (sigma = 20 DN).
+target: {trajectory: figure8, speed_px_s: 120}
+noise: {gaussian: true, gaussian_sigma: 20}

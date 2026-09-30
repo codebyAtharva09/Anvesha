@@ -1,0 +1,4 @@
+name: F_platform
+description: Linear platform motion 10 px/frame (300 px/s LOS drift, reversing) - mandatory PS platform mode.
+target: {trajectory: figure8, speed_px_s: 100}
+platform: {motion: linear, amplitude_px_per_frame: 10, period_s: 6}

@@ -1,0 +1,4 @@
+name: F2_vibration
+description: Platform vibration (7 Hz + 13 Hz, 15 px amplitude).
+target: {trajectory: circular, speed_px_s: 100}
+platform: {motion: vibration, amplitude_px_per_frame: 15, vibration_hz: [7.0, 13.0]}

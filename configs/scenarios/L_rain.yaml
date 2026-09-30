@@ -1,0 +1,5 @@
+name: L_rain
+description: Rain - streak clutter (up to 200 streaks/frame), transmission loss, mild blur.
+target: {trajectory: figure8, speed_px_s: 120}
+atmosphere: {condition: rain, severity: 0.8}
+noise: {gaussian: true, gaussian_sigma: 4}

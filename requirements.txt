@@ -1,0 +1,14 @@
+numpy>=1.26
+scipy>=1.11
+opencv-python>=4.8
+onnxruntime>=1.17
+fastapi>=0.110
+uvicorn>=0.29
+websockets>=12
+pyyaml>=6
+matplotlib>=3.8
+openpyxl>=3.1
+# optional
+# torch>=2.2            (only to retrain BeaconNet: tools/train_beaconnet.py)
+# pyinstaller>=6        (only to build the standalone .exe)
+# pywebview>=5          (optional native window instead of the browser)

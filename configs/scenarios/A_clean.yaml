@@ -1,0 +1,3 @@
+name: A_clean
+description: Clear sky, sensor read noise only, circular beacon motion, random start.
+target: {trajectory: circular, speed_px_s: 120}

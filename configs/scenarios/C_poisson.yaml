@@ -1,0 +1,4 @@
+name: C_poisson
+description: Photon-starved Poisson shot noise (0.3 photons/DN) + read noise.
+target: {trajectory: straight, speed_px_s: 120}
+noise: {poisson: true, poisson_scale: 0.3}

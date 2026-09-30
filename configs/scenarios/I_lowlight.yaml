@@ -1,0 +1,5 @@
+name: I_lowlight
+description: Low light (gain 0.32) with shot and read noise.
+target: {trajectory: spiral, speed_px_s: 120}
+atmosphere: {condition: low_light, severity: 0.8}
+noise: {poisson: true, poisson_scale: 1.0, gaussian: true, gaussian_sigma: 4}

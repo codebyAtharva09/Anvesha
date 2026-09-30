@@ -1,0 +1,4 @@
+name: E_jitter
+description: Camera jitter +/-10 px/frame (uniform, white).
+target: {trajectory: circular, speed_px_s: 120}
+noise: {jitter_px: 10}

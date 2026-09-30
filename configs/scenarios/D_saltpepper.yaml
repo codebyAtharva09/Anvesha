@@ -1,0 +1,4 @@
+name: D_saltpepper
+description: Salt & pepper impulsive noise on 10 % of pixels (PS reference).
+target: {trajectory: random, speed_px_s: 120}
+noise: {salt_pepper: true, salt_pepper_frac: 0.10}

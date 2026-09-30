@@ -1,0 +1,5 @@
+name: O_distractors
+description: Star field + 4 static beacon look-alike distractors of similar size and brightness.
+screen: {background: starfield, n_stars: 120, n_distractors: 4}
+target: {trajectory: circular, speed_px_s: 120}
+noise: {gaussian: true, gaussian_sigma: 4}

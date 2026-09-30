@@ -1,0 +1,3 @@
+name: J_fast
+description: Fast, manoeuvring beacon (random, 350 px/s = 2.2 deg/s) - abrupt direction changes.
+target: {trajectory: random, speed_px_s: 350}

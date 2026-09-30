@@ -1,0 +1,5 @@
+name: H_haze
+description: Haze - contrast reduction and air-light veil.
+target: {trajectory: sinusoidal, speed_px_s: 120}
+atmosphere: {condition: haze, severity: 0.8}
+noise: {gaussian: true, gaussian_sigma: 4}
