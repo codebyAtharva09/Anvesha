@@ -138,6 +138,8 @@ class SearchCfg:
     reject_static: bool = True      # PS target is a *moving* beacon: a lock that stays static > static_s is treated as a look-alike
     static_s: float = 0.8
     static_speed_px_s: float = 8.0
+    static_disp_px: float = 12.0
+    static_revisit_s: float = 0.4   # a detection seen again at the same world position after this long is static    # max world-frame displacement over static_s for a "static" lock
 
 
 @dataclass

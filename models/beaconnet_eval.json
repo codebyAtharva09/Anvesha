@@ -1,13 +1,13 @@
 {
  "params": 6773,
- "steps": 4000,
+ "steps": 20000,
  "heldout_patches": 2000,
- "tp": 890,
- "fp": 236,
- "fn": 103,
- "tn": 771,
- "recall": 0.8962739174219537,
- "false_positive_rate": 0.23435948361469713,
- "peak_loc_error_px_median": 0.5296971289956898,
+ "tp": 907,
+ "fp": 243,
+ "fn": 86,
+ "tn": 764,
+ "recall": 0.9133937562940584,
+ "false_positive_rate": 0.2413108242303873,
+ "peak_loc_error_px_median": 0.47634687165277595,
  "note": "held-out synthetic patches from the same generator (in-distribution); not a real-camera evaluation"
 }

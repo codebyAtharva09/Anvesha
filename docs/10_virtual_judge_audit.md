@@ -32,8 +32,8 @@ Framework: the "SIH Virtual Judge" prompt's analytical 100-point scale. This is 
 | 1 | Push the repo to public GitHub and record a 2-min demo (GUI: clean → fog → occlusion → report). Rebuild with the links so real QR codes appear. | team | +3–4 (evidence, demo) |
 | 2 | **Real-footage test:** film a moving LED or laser dot on a dark wall with a phone, run `run_video.bat clip.mp4`, and add one screenshot plus lock % and FPS to slide 4. Label it "real footage, no ground truth". | team | +3 (feasibility, evidence) |
 | 3 | Retrain BeaconNet on GPU with more data (`train_gpu.bat`), then report the new held-out recall/FPR. Only report numbers that improve. | team | +1–2 (AI credibility) |
-| 4 | Slide 4 at ≥ 10 pt: show 10 representative scenarios on the slide and the full 16 in the backup/report. | Claude | +1 (presentation) |
-| 5 | Fix the O (look-alikes) and N (all maxima) failures, then re-run the benchmark. | Claude + laptop run | +1 |
+| 4 | Slide 4 at ≥ 10 pt: show 10 representative scenarios on the slide and the full 16 in the backup/report. | dev | +1 (presentation) |
+| 5 | Fix the O (look-alikes) and N (all maxima) failures, then re-run the benchmark. | dev + laptop run | +1 |
 
 Realistic ceiling after items 1–4 is about 88–92. A score of 95+ would need hardware-in-the-loop or field evidence, which is beyond an idea-round deck.
 

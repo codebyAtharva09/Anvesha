@@ -100,6 +100,10 @@ class Supervisor:
         self.plan_xy: Optional[np.ndarray] = None
         self.blacklist: List[np.ndarray] = []   # gimbal-frame positions of rejected static look-alikes
         self.static_for = 0.0
+        self.plat_int = np.zeros(2)            # integrated IMU rate = platform LOS offset estimate (px)
+        self.smap_t = np.zeros(0); self.smap_w = np.zeros((0, 2))   # recent detections in the world frame
+        self.jit_seen = 0.0
+        self.world_hist: Deque[Tuple[float, np.ndarray]] = deque(maxlen=64)
         self.frame_dt = 1.0 / c.rate_hz
         self.last_t = 0.0
         self.a_err = np.zeros(2)   # baseline A: last measured error
@@ -129,6 +133,8 @@ class Supervisor:
         dt = max(t - self.last_t, 1e-3)
         self.last_t = t
         self.imu_last = imu_rate
+        if self.cfg.platform.imu_available:
+            self.plat_int = self.plat_int + imu_rate * dt
         if self.blacklist and self.cfg.platform.imu_available:
             # static world objects drift in the gimbal frame opposite to platform rotation
             self.blacklist = [p_ - imu_rate * dt for p_ in self.blacklist]
@@ -155,6 +161,8 @@ class Supervisor:
                 # widen to full frame once before giving up on this frame
                 dets, st = self.detector.detect(frame, exp_size, None)
         self.dm.observe_noise(st.pix_sigma, st.sp_frac)
+        if dets and self.pipe == "anvesha" and self.cfg.search.reject_static and self.mode in ("SEARCH", "REACQUIRE"):
+            self._static_map(t, dets, gimbal_enc, zoom)
         # ---- association --------------------------------------------- #
         chosen, z = None, None
         min_score = 0.35 if self.pipe == "anvesha" else 0.0
@@ -243,7 +251,19 @@ class Supervisor:
         sc_ = self.cfg.search
         if (sc_.reject_static and self.pipe == "anvesha" and self.mode == "TRACK" and self.est is not None
                 and self.est.initialised and chosen is not None):
-            if np.linalg.norm(self.est.x[2:4]) < sc_.static_speed_px_s:
+            # world-frame displacement test: tracked position + integrated platform motion (IMU).
+            # A static look-alike stays put in the world even when the platform moves it across the image.
+            wpos = self.est.x[:2] + self.plat_int
+            self.world_hist.append((t, wpos.copy()))
+            while self.world_hist and t - self.world_hist[0][0] > sc_.static_s:
+                self.world_hist.popleft()
+            span = t - self.world_hist[0][0] if self.world_hist else 0.0
+            W = np.array([w_ for _, w_ in self.world_hist])
+            extent = float(np.max(np.ptp(W, axis=0))) if len(W) > 1 else 1e9   # a reversing target still spans its path
+            self.jit_seen = max(self.jit_seen, float(getattr(self.est, "jitter_sigma", 0.0)))
+            if span >= 0.9 * sc_.static_s and extent < sc_.static_disp_px + 0.8 * self.jit_seen:
+                self.static_for = sc_.static_s + 1e-6
+            elif np.linalg.norm(self.est.x[2:4]) < sc_.static_speed_px_s:
                 self.static_for += dt
             else:
                 self.static_for = 0.0
@@ -251,8 +271,11 @@ class Supervisor:
                 self.blacklist.append(self.est.x[:2].copy())
                 self._event(t, "static look-alike rejected - resuming search")
                 self.static_for = 0.0
+                self.world_hist.clear()
                 self.est.initialised = False
-                self.bm.reset_uniform()
+                # keep the pre-lock belief (the misses before the false lock are still valid evidence);
+                # only diffuse it for the time spent on the look-alike
+                self.bm.predict(max(t - self.last_meas_t, 0.0) + sc_.static_s)
                 self.planner.plan = None
                 self._set_mode(t, "SEARCH", "look-alike")
                 chosen = None
@@ -272,6 +295,37 @@ class Supervisor:
                            self.est.mu.tolist() if (self.est is not None and self.est.initialised) else None,
                            nis, self.planner.expected_pd(zoom) if self.mode in ("SEARCH", "REACQUIRE") else self.dm.pd(zoom), list(self.events))
 
+    def _static_map(self, t: float, dets, gimbal_enc: np.ndarray, zoom: float) -> None:
+        """Pre-lock look-alike rejection: a detection that re-appears at the same *world* position
+        (gimbal frame + integrated IMU platform motion) after >= static_revisit_s is a static object,
+        not the moving beacon -> blacklist it without spending a lock on it."""
+        sc_ = self.cfg.search
+        if self.est is not None:
+            self.jit_seen = max(self.jit_seen, float(getattr(self.est, "jitter_sigma", 0.0)))
+        thr = sc_.static_disp_px + 2.5 * self.jit_seen
+        keep = self.smap_t > t - 4.0
+        self.smap_t, self.smap_w = self.smap_t[keep], self.smap_w[keep]
+        tracked = self.est.x[:2] if (self.est is not None and self.est.initialised) else None
+        new_w = []
+        for d in [d_ for d_ in dets[:12] if d_.score >= 0.5 and (d_.cnn < 0 or d_.cnn >= 0.5)]:
+            g = self.to_g(np.array([d.u, d.v]), gimbal_enc, zoom)
+            w = g + self.plat_int
+            new_w.append(w)
+            old = self.smap_t <= t - sc_.static_revisit_s
+            if not old.any():
+                continue
+            dist = np.linalg.norm(self.smap_w[old] - w, axis=1)
+            if (dist < thr).sum() >= 2:
+                if any(np.linalg.norm(g - b_) < thr for b_ in self.blacklist):
+                    continue
+                self.blacklist.append(g.copy())
+                self._event(t, "static object mapped - excluded from acquisition")
+        if new_w:
+            self.smap_t = np.concatenate([self.smap_t, np.full(len(new_w), t)])
+            self.smap_w = np.vstack([self.smap_w, np.array(new_w)])
+            if len(self.smap_t) > 3000:
+                self.smap_t, self.smap_w = self.smap_t[-3000:], self.smap_w[-3000:]
+
     # ------------------------------------------------------------------ #
     def _lock(self, t: float, z: np.ndarray, v: Optional[np.ndarray]) -> None:
         if self.est is not None:
@@ -283,6 +337,8 @@ class Supervisor:
         self.plan_xy = None
         if hasattr(self.ctrl, "reset"):
             self.ctrl.reset()
+        self.world_hist.clear()
+        self.static_for = 0.0
         why = "re-acquired" if self.lost_at is not None else "acquired"
         self._set_mode(t, "TRACK", why)
         self.lost_at = None

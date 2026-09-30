@@ -18,6 +18,7 @@ install.bat            # pip install -r requirements.txt  (Python 3.10+)
 run_gui.bat            # mission-control GUI at http://127.0.0.1:8765
 run_benchmark.bat      # 16 scenarios × 4 pipelines × 3 seeds + ablation → results\bench, results\ablation
 run_video.bat my.mp4 [truth.csv]   # Benchmark-2: evaluator video, PTZ bypassed
+run_real_footage.bat clip.mp4 [size]  # real phone clip of a moving LED -> results\real_footage
 train_gpu.bat          # retrain BeaconNet on an NVIDIA GPU (optional)
 packaging\build_exe.bat  # standalone ANVESHA.exe (PyInstaller)
 ```

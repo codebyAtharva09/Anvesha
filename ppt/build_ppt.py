@@ -84,8 +84,13 @@ def finite(x):
     return x is not None and isinstance(x, (int, float)) and math.isfinite(x)
 
 
+REAL = REPO / "results/real_footage/video_summary.json"
+REAL_IMG = REPO / "results/real_footage/track_preview.png"
+
+
 class Data:
     def __init__(self):
+        self.real = _load(REAL) or {}
         self.bench = _load(BENCH) or {}
         self.abl = _load(ABL) or {}
         self.video = _load(VIDEO) or {}
@@ -712,6 +717,10 @@ def slide3(s, d: Data):
 
 def cnn_status(d: Data):
     c = d.cnn or {}
+    auc, op = c.get("roc_auc"), c.get("at_fpr_5pct") or {}
+    if finite(auc) and finite(op.get("recall")):
+        return (f"CNN verifier: ROC-AUC {auc:.2f}; recall {100 * op['recall']:.0f} % at 5 % false positives "
+                f"(held-out synthetic patches)")
     r, f = c.get("recall"), c.get("false_positive_rate")
     if finite(r) and finite(f):
         return f"CNN verifier: recall {100 * r:.0f} %, FPR {100 * f:.0f} % on held-out synthetic patches"
@@ -792,10 +801,10 @@ def slide4(s, d: Data):
                 cf[(i, j)] = RED_T; cc[(i, j)] = RED
         rows.append(row)
     rows[0][1] = "Acq. ≤2 s"
-    table(s, 0.4, 1.7, 5.95, 0.2 * len(rows), rows, [1.72, 0.88, 0.62, 0.72, 0.6, 0.73, 0.68], size=8.5, row_h=0.2,
+    table(s, 0.4, 1.7, 5.95, 0.21 * len(rows), rows, [1.72, 0.88, 0.62, 0.72, 0.6, 0.73, 0.68], size=9, row_h=0.21,
           cell_fills=cf, cell_colors=cc, align_cols={j: PP_ALIGN.CENTER for j in range(1, 7)}, zebra=False)
     npass = {p: sum(ps_pass(d, sc, p) for sc in order) for p in PIPES}
-    ty = 5.2
+    ty = 5.36
     textbox(s, 0.4, ty, 5.95, 0.42, [
         [("All PS checks met: ", {"bold": True, "color": NAVY}),
          (f"ANVESHA {npass['anvesha']}/{len(order)} scenarios", {"bold": True, "color": BLUE}),
@@ -849,9 +858,9 @@ def slide4(s, d: Data):
           cell_fills={(i, 0): TINT2 for i in range(1, 6)}, zebra=False)
 
     # ---- bottom: measured gaps + status
-    gy = 5.66
+    gy = 5.8
     GW = 5.95
-    box(s, 0.4, gy, GW, 1.21, fill=RED_T, radius=0.05)
+    box(s, 0.4, gy, GW, 1.12, fill=RED_T, radius=0.05)
     tag(s, 0.48, gy + 0.06, "Measured gaps — shown, not hidden", fill=RED, size=9.5)
     fog = d.bench.get("G_fog|anvesha", {}); rain = d.bench.get("L_rain|anvesha", {})
     e_img, e_los = d.get("E_jitter", "anvesha", "err_img_mean_px"), d.get("E_jitter", "anvesha", "err_los_mean_px")
@@ -1408,9 +1417,28 @@ def tweak_v4(prs):
                     if r.text == "PyInstaller .exe":
                         r.text = "PyInstaller (.exe spec)"
                     if r.text == "Ablation — remove one part (3 seeds):":
-                        r.text = "Ablation — remove one part (10 scenarios × 3 seeds):"
+                        r.text = "Ablation, 10 scenarios × 3 seeds:"
                     if r.text.startswith("Measured (SIL, 48 runs each)"):
                         r.text = "Measured (SIL, 16 scenarios × 3 seeds): "
+
+
+def slide4_v4(s, d):
+    """Real-footage evidence box (only when results/real_footage exists - never a placeholder)."""
+    r = d.real
+    if not r or not REAL_IMG.exists():
+        return
+    for sh in list(s.shapes):
+        if sh.has_text_frame and sh.text_frame.text.startswith("Median acquisition when acquired"):
+            sh.top = Inches(3.52 - 0.0)
+            remove_shape(sh)
+    MX, MW, y = 6.55, 2.85, 5.92
+    box(s, MX, y, MW, 0.95, fill=GREEN_T, line=GREEN, radius=0.06)
+    picture(s, REAL_IMG, MX + 0.06, y + 0.07, h=0.81)
+    res = r.get("resolution") or ["?", "?"]
+    textbox(s, MX + 1.55, y + 0.03, MW - 1.6, 0.9, [
+        [("Real footage (phone clip, no truth): ", {"bold": True, "color": GREEN})],
+        [(f"{r.get('frames', '—')} frames {res[0]}×{res[1]}; lock kept {fmt(r.get('lock_retention_pct'), 0, ' %')} of frames "
+          f"after acquisition; {fmt(r.get('fps_end_to_end_incl_decode'), 0)} FPS", {})]], size=8, space_after=0)
 
 
 def build():
@@ -1431,6 +1459,7 @@ def build():
     slide1_v4(sl[0], d)
     slide5_v4(sl[4], d)
     slide6_v4(sl[5], d)
+    slide4_v4(sl[3], d)
     tweak_v4(prs)
     for sd in sl:
         set_footer(sd)

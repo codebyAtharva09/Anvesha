@@ -1,26 +1,11 @@
-# Python
 __pycache__/
 *.pyc
-*.pyo
 .pytest_cache/
-
-# Generated outputs (large / reproducible via run_all_on_laptop.bat)
-results/
-logs/
-*.mp4
-
-# PyInstaller build artifacts
 build/
 dist/
-*.spec.bak
-
-# Editors / OS
-.vscode/
-.idea/
-Thumbs.db
-.DS_Store
-
-# Virtual envs
-venv/
-.venv/
-env/
+logs/
+*.mp4
+results/runs/
+results/gui_runs/
+results/videos/
+~$*.pptx

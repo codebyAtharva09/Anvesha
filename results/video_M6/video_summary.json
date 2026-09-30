@@ -1,0 +1,29 @@
+{
+ "video": "results/videos/M_combined_6s.mp4",
+ "frames": 180,
+ "resolution": [
+  2000,
+  2000
+ ],
+ "fps_video": 30.0,
+ "processing_ms_mean": 5.496499999999999,
+ "processing_ms_p95": 10.360349999999999,
+ "fps_processing": 181.93395797325573,
+ "fps_end_to_end_incl_decode": 29.395537451800344,
+ "acquisition_time_s": 0.03333333333333333,
+ "detection_rate_pct": 100.0,
+ "lock_retention_pct": 100.0,
+ "centroid_error_px": {
+  "mean": 0.11384722222222222,
+  "rmse": 0.13604563307132567,
+  "max": 0.5007,
+  "p95": 0.23798999999999998,
+  "n": 180
+ },
+ "estimate_error_px": {
+  "mean": 4.7214821229050274,
+  "rmse": 5.310341468126184
+ },
+ "truth_available": true,
+ "note": "centroid_err uses the RAW per-frame measurement; est_err uses the IMM-filtered estimate"
+}

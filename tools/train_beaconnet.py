@@ -42,6 +42,7 @@ def make_patch(rng: np.random.Generator):
     blur = float(rng.uniform(0.6, 2.5))
     u = v = -1.0
     amp_trans = 1.0
+    peak_eff = 0.0
     cond = rng.choice(["clear", "haze", "fog", "rain", "low"])
     sev = rng.uniform(0, 1)
     if cond == "haze":
@@ -52,6 +53,7 @@ def make_patch(rng: np.random.Generator):
     if has:
         u, v = rng.uniform(8, P - 8), rng.uniform(8, P - 8)
         peak = float(rng.uniform(25, 230)) * amp_trans
+        peak_eff = peak
         render_spot(img, u, v, size, peak, blur, "square" if rng.random() < 0.8 else "circle")
     if cond in ("haze", "fog"):
         img = img * (0.3 + 0.7 * amp_trans) + (90 if cond == "fog" else 45) * sev
@@ -62,12 +64,16 @@ def make_patch(rng: np.random.Generator):
             a = math.radians(100) + rng.normal(0, 0.1)
             cv2.line(img, (int(x), int(y)), (int(x + L * math.cos(a)), int(y + L * math.sin(a))),
                      float(rng.uniform(25, 90)), 1, cv2.LINE_AA)
+    if cond in ("haze", "fog"):
+        peak_eff *= (0.3 + 0.7 * amp_trans)
     if cond == "low":
         img *= 1 - 0.85 * sev
+        peak_eff *= 1 - 0.85 * sev
     if rng.random() < 0.5:
         sc = rng.uniform(0.3, 3.0)
         img = rng.poisson(np.clip(img, 0, None) * sc).astype(np.float32) / sc
-    img += rng.standard_normal(img.shape).astype(np.float32) * rng.uniform(0, 20)
+    gsig = float(rng.uniform(0, 20))
+    img += rng.standard_normal(img.shape).astype(np.float32) * gsig
     out = np.clip(img, 0, 255).astype(np.uint8)
     if rng.random() < 0.4:
         f = rng.uniform(0, 0.15)
@@ -82,7 +88,9 @@ def make_patch(rng: np.random.Generator):
         yy, xx = np.mgrid[0:P, 0:P]
         s = max(1.2, min(size / 4.0, 3.0))
         y = np.exp(-0.5 * ((xx - u) ** 2 + (yy - v) ** 2) / s ** 2).astype(np.float32)
-    return x, y, has, (u, v), size
+    # peak-to-noise ratio of the beacon after atmosphere (only for stratified reporting)
+    snr = peak_eff / max(gsig, 1.0) if has else 0.0
+    return x, y, has, (u, v), size, {"snr": snr, "cond": str(cond)}
 
 
 def build_model():
@@ -109,17 +117,19 @@ def main():
     ap.add_argument("--steps", type=int, default=3000)
     ap.add_argument("--batch", type=int, default=48)
     ap.add_argument("--seed", type=int, default=7)
+    ap.add_argument("--eval-n", dest="eval_n", type=int, default=4000)
+    ap.add_argument("--lr", type=float, default=2e-3)
     ap.add_argument("--out", default=str(ROOT / "models" / "beaconnet.onnx"))
     ap.add_argument("--device", default="auto", help="auto | cuda | cpu (auto uses the GPU when CUDA is available)")
     a = ap.parse_args()
     import torch
     torch.manual_seed(a.seed)
-    torch.set_num_threads(2)
+    torch.set_num_threads(max(1, (__import__("os").cpu_count() or 2)))
     rng = np.random.default_rng(a.seed)
     dev = torch.device("cuda" if (a.device == "auto" and torch.cuda.is_available()) or a.device == "cuda" else "cpu")
     print("training on", dev, torch.cuda.get_device_name(0) if dev.type == "cuda" else "", flush=True)
     net = build_model().to(dev)
-    opt = torch.optim.Adam(net.parameters(), 2e-3)
+    opt = torch.optim.Adam(net.parameters(), a.lr)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, a.steps)
     nparam = sum(p.numel() for p in net.parameters())
     t0 = time.time()
@@ -141,27 +151,36 @@ def main():
     net = net.to(dev)
     # held-out evaluation on fresh seeded patches: presence detection + localisation
     rng_e = np.random.default_rng(12345)
-    tp = fp = fn = tn = 0
-    errs = []
+    scores, labels, snrs, errs = [], [], [], []
     with torch.no_grad():
-        for _ in range(2000):
-            x, y, has, (u, v), size = make_patch(rng_e)
+        for _ in range(a.eval_n):
+            x, y, has, (u, v), size, meta = make_patch(rng_e)
             hm = net(torch.from_numpy(x[None, None]).to(dev))[0, 0].cpu().numpy()
             m = float(hm.max())
-            det = m > 0.5
-            if has and det:
-                tp += 1
+            scores.append(m); labels.append(int(has)); snrs.append(meta["snr"])
+            if has and m > 0.5:
                 iy, ix = np.unravel_index(int(np.argmax(hm)), hm.shape)
                 errs.append(math.hypot(ix - u, iy - v))
-            elif has:
-                fn += 1
-            elif det:
-                fp += 1
-            else:
-                tn += 1
-    ev = {"params": int(nparam), "steps": a.steps, "heldout_patches": 2000, "tp": tp, "fp": fp, "fn": fn, "tn": tn,
-          "recall": tp / max(tp + fn, 1), "false_positive_rate": fp / max(fp + tn, 1),
+    S, L, R = np.array(scores), np.array(labels), np.array(snrs)
+    pos, neg = S[L == 1], S[L == 0]
+    auc = float((pos[:, None] > neg[None, :]).mean() + 0.5 * (pos[:, None] == neg[None, :]).mean())
+
+    def at(th, mask=None):
+        m_ = (L == 1) if mask is None else ((L == 1) & mask)
+        return {"threshold": round(float(th), 3), "recall": float((S[m_] > th).mean()),
+                "false_positive_rate": float((neg > th).mean())}
+    th5 = float(np.quantile(neg, 0.95))       # operating point with 5 % false positives
+    det = R >= 3.0                            # positives with peak >= 3 x Gaussian noise sigma
+    tp = int(((S > 0.5) & (L == 1)).sum()); fn = int(((S <= 0.5) & (L == 1)).sum())
+    fp = int(((S > 0.5) & (L == 0)).sum()); tn = int(((S <= 0.5) & (L == 0)).sum())
+    ev = {"params": int(nparam), "steps": a.steps, "batch": a.batch, "heldout_patches": a.eval_n,
+          "tp": tp, "fp": fp, "fn": fn, "tn": tn,
+          "recall": tp / max(tp + fn, 1), "false_positive_rate": fp / max(fp + tn, 1), "roc_auc": auc,
+          "at_threshold_0.5": at(0.5), "at_fpr_5pct": at(th5),
+          "detectable_subset": {"definition": "positives with beacon peak >= 3x Gaussian noise sigma", "n": int(det[L == 1].sum()),
+                                "at_threshold_0.5": at(0.5, det), "at_fpr_5pct": at(th5, det)},
           "peak_loc_error_px_median": float(np.median(errs)) if errs else None,
+          "device": dev.type, "train_seconds": round(time.time() - t0, 1),
           "note": "held-out synthetic patches from the same generator (in-distribution); not a real-camera evaluation"}
     print(json.dumps(ev, indent=1))
     out = Path(a.out)

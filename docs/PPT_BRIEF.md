@@ -1,14 +1,14 @@
 # Brief for the SIH26169 idea-PPT (ANVESHA)
 
 ## Inputs (all local, read them)
-- Official template (MUST be used, structure preserved): `/mnt/user-data/uploads/Downloads/SIH2026-IDEA-Presentation-Format.pptx`
+- Official template (MUST be used, structure preserved): `Downloads/SIH2026-IDEA-Presentation-Format.pptx`
   - 6 slides max incl. title; headings fixed: TITLE PAGE / IDEA TITLE (Proposed Solution) / TECHNICAL APPROACH / FEASIBILITY AND VIABILITY / IMPACT AND BENEFITS / RESEARCH AND REFERENCES. Slide 7 (instructions) is deleted. Final upload is PDF.
   - Title-slide fields: Problem Statement ID – SIH26169; Title – "Development of an AI-Based Virtual Camera Tracking System for Coarse Alignment of Mobile Free Space Optical Communication (FSOC) Terminals"; Theme – Smart Automation / Space Technology; PS Category – Software; Team ID – (leave blank placeholder); Team Name – Regnum Carya.
-- Official PS: `/mnt/user-data/uploads/Downloads/26169.pdf` (note Benchmark-2 video mode = 30 % of marks).
-- Reference style material: `/mnt/user-data/uploads/Downloads/SIH_Architecture_Diagram_Editable_Template.pptx`, `SIH_Architecture_Template_Reference_Style.pptx`, `sih-winning-ppt-1 (1).pdf`, `/mnt/user-data/uploads/Downloads/SIH/SIH/SWARMNAV_SIH2026_PS26123.pptx` (team's earlier deck), `SIH_MedTech_StandOut_Guide.docx.pdf`, and the 8 "Stand-out framework" images in `/tmp/claude-0/ref/` (grid0.jpg, grid1.jpg): one idea per slide, cite every stat, a "what makes this different" table (existing solution | limitation | our approach), judges decide in ~30 s.
-- Virtual-judge rubric for red-teaming: `/mnt/user-data/uploads/Downloads/SIH VIRTUAL JUDGE.pdf`.
-- Research outputs: `/home/claude/repo/docs/01_PS_decomposition_and_compliance.md`, `03_competitor_analysis.md`, `04_gap_matrix_novelty_architecture.md`, literature DB `docs/literature/literature_database.csv` (134 real records with DOIs/links).
-- MEASURED results (use only these numbers): `/home/claude/repo/results/bench/summary.json` (scenario|pipeline aggregates over 3 seeds), `results/ablation/summary.json` (when present), `results/video_M6/video_summary.json` (Benchmark-2 rehearsal), `models/beaconnet_eval.json`. GUI screenshots in `/home/claude/repo/docs/img/` (when present).
+- Official PS: `Downloads/26169.pdf` (note Benchmark-2 video mode = 30 % of marks).
+- Reference style material: `Downloads/SIH_Architecture_Diagram_Editable_Template.pptx`, `SIH_Architecture_Template_Reference_Style.pptx`, `sih-winning-ppt-1 (1).pdf`, `Downloads/SIH/SIH/SWARMNAV_SIH2026_PS26123.pptx` (team's earlier deck), `SIH_MedTech_StandOut_Guide.docx.pdf`, and the 8 "Stand-out framework" images (reference images): one idea per slide, cite every stat, a "what makes this different" table (existing solution | limitation | our approach), judges decide in ~30 s.
+- Virtual-judge rubric for red-teaming: `Downloads/SIH VIRTUAL JUDGE.pdf`.
+- Research outputs: `docs/01_PS_decomposition_and_compliance.md`, `03_competitor_analysis.md`, `04_gap_matrix_novelty_architecture.md`, literature DB `docs/literature/literature_database.csv` (134 real records with DOIs/links).
+- MEASURED results (use only these numbers): `results/bench/summary.json` (scenario|pipeline aggregates over 3 seeds), `results/ablation/summary.json` (when present), `results/video_M6/video_summary.json` (Benchmark-2 rehearsal), `models/beaconnet_eval.json`. GUI screenshots in `docs/img/` (when present).
 
 ## Story (one idea per slide)
 PROBLEM → WHY CURRENT APPROACHES ARE INSUFFICIENT → INSIGHT → ARCHITECTURE → INNOVATION → FEASIBILITY → HOW BENCHMARKED → IMPACT.
@@ -33,7 +33,6 @@ Core insight to make obvious in 30 s:
 - Do not name or disparage specific competitor teams on slides; refer to "typical public approaches".
 - Minimal text; diagrams, tables, icons (simple shapes), ≥ 14 pt body where possible; consistent palette (the template's), high contrast.
 - Keep template branding/header/footer elements intact; do not change the idea-detail pointer headings.
-- Output: `/home/claude/repo/ppt/SIH26169_RegnumCarya_ANVESHA.pptx` and a PDF export (LibreOffice: `soffice --headless --convert-to pdf`), plus render PNG previews and inspect every slide visually (fix overflow/overlap).
-- Also write `/home/claude/repo/ppt/presenter_script.md` (slide-by-slide, ~60–90 s each) and `/home/claude/repo/ppt/redteam_review.md` (review as ISRO scientist, CV researcher, aerospace engineer, SW engineer, SIH evaluator, skeptic, competitor, using the Virtual-Judge rubric) and then revise the deck accordingly.
-- Build the deck with a Python script `/home/claude/repo/ppt/build_ppt.py` (python-pptx, editing a copy of the official template) that reads the results JSON so numbers can be refreshed by re-running it.
-- Do not add any mention of Claude/AI-assistant authorship anywhere in files.
+- Output: `ppt/SIH26169_RegnumCarya_ANVESHA.pptx` and a PDF export (LibreOffice: `soffice --headless --convert-to pdf`), plus render PNG previews and inspect every slide visually (fix overflow/overlap).
+- Also write `ppt/presenter_script.md` (slide-by-slide, ~60–90 s each) and `ppt/redteam_review.md` (review as ISRO scientist, CV researcher, aerospace engineer, SW engineer, SIH evaluator, skeptic, competitor, using the Virtual-Judge rubric) and then revise the deck accordingly.
+- Build the deck with a Python script `ppt/build_ppt.py` (python-pptx, editing a copy of the official template) that reads the results JSON so numbers can be refreshed by re-running it.

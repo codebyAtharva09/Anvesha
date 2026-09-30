@@ -128,6 +128,7 @@ def run_video(path: str, out_dir: str, truth_csv: Optional[str] = None, beacon_s
     rows = []
     k = 0
     t_decode = 0.0
+    snap = None      # a mid-video frame for the track preview image
     wall0 = time.perf_counter()
     while True:
         a = time.perf_counter()
@@ -138,6 +139,8 @@ def run_video(path: str, out_dir: str, truth_csv: Optional[str] = None, beacon_s
         t_decode += time.perf_counter() - a
         t = k / fps
         mode, ch, z, est, ms = vt.process(gray, t)
+        if snap is None and mode == "TRACK" and k >= 15:
+            snap = fr.copy() if fr.ndim == 3 else cv2.cvtColor(fr, cv2.COLOR_GRAY2BGR)
         tr = truth.get(k)
         ce = math.hypot(z[0] - tr[0], z[1] - tr[1]) if (z is not None and tr is not None) else float("nan")
         ee = math.hypot(est[0] - tr[0], est[1] - tr[1]) if (est is not None and tr is not None) else float("nan")
@@ -181,4 +184,26 @@ def run_video(path: str, out_dir: str, truth_csv: Optional[str] = None, beacon_s
         "note": "centroid_err uses the RAW per-frame measurement; est_err uses the IMM-filtered estimate",
     }
     (out / "video_summary.json").write_text(json.dumps(s, indent=1))
+    try:
+        _preview(snap, rows, out / "track_preview.png")
+    except Exception as e:  # preview is optional
+        print("preview skipped:", e)
     return s
+
+
+def _preview(frame, rows, path: Path) -> None:
+    """Frame with the measured (raw centroid) track drawn on it - visual evidence for real footage."""
+    if frame is None:
+        return
+    img = frame.copy()
+    pts = [(float(r[4]), float(r[5])) for r in rows if r[4] != ""]
+    for (x0, y0), (x1, y1) in zip(pts[:-1], pts[1:]):
+        if math.hypot(x1 - x0, y1 - y0) < 80:
+            cv2.line(img, (int(x0), int(y0)), (int(x1), int(y1)), (0, 200, 255), 2, cv2.LINE_AA)
+    if pts:
+        x, y = pts[-1]
+        cv2.circle(img, (int(x), int(y)), 18, (0, 255, 0), 2, cv2.LINE_AA)
+    sc = min(1.0, 1200.0 / img.shape[1])
+    if sc < 1.0:
+        img = cv2.resize(img, None, fx=sc, fy=sc, interpolation=cv2.INTER_AREA)
+    cv2.imwrite(str(path), img)

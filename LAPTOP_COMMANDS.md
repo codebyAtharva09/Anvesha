@@ -38,3 +38,15 @@ train_gpu.bat                         REM retrain BeaconNet on the GPU  (log: lo
 python tools\train_beaconnet.py --steps 20000 --batch 256 --device auto > logs\07_train_gpu.log 2>&1
 packaging\build_exe.bat               REM build dist\ANVESHA\ANVESHA.exe
 ```
+
+## 6. Real-footage check (adds real evidence to slide 4 automatically)
+Film 10–20 s with your phone (landscape, 30 fps). Use a dark room and a small LED or laser-pointer dot moving on a wall; keep the phone still or pan slowly; no auto-flash.
+Copy the clip into this folder, then:
+```
+run_real_footage.bat my_clip.mp4 12
+```
+(12 = approximate beacon size in pixels; try 8–25 if lock is poor.) Output: `results\real_footage\video_summary.json` + `track_preview.png`.
+Then rebuild the deck — the real-footage box appears on slide 4 only when this result exists:
+```
+python ppt\build_ppt.py
+```
